@@ -1,4 +1,4 @@
-const models_dir = "./";
+const models_dir = "./models/";
 function initialize()
 {
     // Setting screen dimensions
@@ -27,30 +27,47 @@ function initializeObjects() {
         jet = gltf.scene;
         jet.rotation.x = 90;
         jet.rotation.y = Math.PI; 
-        jet.scale.set(0.03, 0.03, 0.03);
+        let scale = 0.025;
+        jet.scale.set(scale, scale, scale);
         jet.position.set(0, -1, 0);
         scene.add(jet);
     });
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    missile = new THREE.Mesh(geometry, material);
-    missile.scale.set(0.1, 0.1, 0.1);
+    const missile_path = models_dir + "missile.glb";
+    gltfLoader.load(missile_path, gltf => {
+        missile = gltf.scene;
+        let scale = 0.1;
+        missile.scale.set(scale, scale, scale);
+        missile.scale.z = 0.05;
+        missile.rotation.y = Math.PI;
+        missile.rotation.x = Math.PI/2;
+    });
     const enemy_path = models_dir + "ufo.glb";
     gltfLoader.load(enemy_path, gltf => {
         enemy = gltf.scene;
-        enemy.rotation.x = 90;
-        enemy.scale.set(0.1, 0.1, 0.1)
+        let scale = 0.1;
+        enemy.scale.set(scale, scale, scale);
+    });
+    const star_path = models_dir + "star.glb";
+    gltfLoader.load(star_path, gltf => {
+        star = gltf.scene;
+        let scale = 0.07;
+        star.scale.set(scale, scale, scale);
+        star.rotation.y = Math.PI/2;
     });
 }
 
-let scene, camera, light, renderer, jet, missile, enemy;
+let scene, camera, light, renderer, jet, missile, enemy, star;
 let missiles = [];
 let enemies = [];
+let stars = []
 const movement = 0.06; // speed of fighter jet
-const enemy_movement = 0.005; // speed of ufo downward
+const enemy_movement = 0.003; // speed of ufo downward
 const missile_movement = 0.05; // speed of missile upward
+const star_rotation = 0.05;
+const star_movement = 0.005;
 const enemy_interval = 1;
-const max_enemies = 3;
+const max_enemies = 2;
+const star_probability = 0.6;
 initialize(); // initialising scene and objects
 initializeObjects();
 const y_max = 1.75; // max y
@@ -63,15 +80,59 @@ function animate() {
     renderer.render(scene, camera);
     handle_missiles();
     handle_enemies();
+    handle_stars();
+    detect_collisions_missiles_enemies();
+}
+
+function destroy_enemy(i, j) {
+    let random_number = Math.random();
+    if (random_number <= star_probability) {
+        stars.push(star.clone());
+        scene.add(stars[stars.length-1]);
+        stars[stars.length-1].position.set(
+            enemies[i].position.x,
+            enemies[i].position.y,
+            enemies[i].position.z
+        );
+    }
+    scene.remove(enemies[i]);
+    enemies.splice(i, 1);
+    scene.remove(missiles[j]);
+    missiles.splice(j, 1);
+}
+
+function detect_collisions_missiles_enemies() {
+    for(let i=0; i<enemies.length; i++) {
+        for(let j=0; j<missiles.length; j++) {
+            const dist = enemies[i].position.distanceTo(missiles[j].position);
+            if (dist <= 0.4) {
+                destroy_enemy(i, j);
+                i--; j--;
+                return;
+            }
+        }
+    }
 }
 
 function handle_missiles() {
-    let length = missiles.length;
-    for(let i=0; i<length; i++) {
+    for(let i=0; i<missiles.length; i++) {
         missiles[i].position.y += missile_movement;
         if(missiles[i].position.y >= 2) {
             scene.remove(missiles[i]);
-            missiles.splice(i, i)
+            missiles.splice(i, 1);
+            i--;
+        }
+    }
+}
+
+function handle_stars() {
+    for (let i=0; i<stars.length; i++) {
+        stars[i].rotation.y += star_rotation;
+        stars[i].position.y -= star_movement;
+        if (stars[i].position.y <= -y_max) {
+            scene.remove(stars[i]);
+            stars.splice(i, 1);
+            i--;
         }
     }
 }
@@ -87,13 +148,13 @@ function handle_enemies() {
         new_enemy.position.z = 0;
         enemies.push(new_enemy);
         scene.add(enemies[enemies.length-1]);
-        length += 1;
     }
-    for(let i=0; i<length; i++) {
+    for(let i=0; i<enemies.length; i++) {
         enemies[i].position.y -= enemy_movement;
         if (enemies[i].position.y <= -y_max) {
             scene.remove(enemies[i]);
-            enemies.splice(i, i);
+            enemies.splice(i, 1);
+            i--;
         }
     }
 }
@@ -122,10 +183,11 @@ function onPress(event) {
 
 function mousePress(event) {
     if (event.button == 0) {
-        missiles.push(missile.clone());
-        missiles[missiles.length-1].position.set(
+        let new_missile = missile.clone();
+        new_missile.position.set(
             jet.position.x, jet.position.y+0.3, jet.position.z
         );
+        missiles.push(new_missile);
         scene.add(missiles[missiles.length-1]);
     }
 } 
