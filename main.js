@@ -16,7 +16,7 @@ function initialize()
     renderer = new THREE.WebGLRenderer({ antialias: true }); // Creating a webgl renderer
     renderer.setSize( width, height ); // Setting the size of screen
     document.body.appendChild( renderer.domElement );
-    document.addEventListener("keydown", onPress, false); // Adding event listener to detect key press for movement
+    document.addEventListener("keydown", onKeyPress, false); // Adding event listener to detect key press for movement
     document.addEventListener("mousedown", mousePress, false);
 }
 
@@ -56,6 +56,14 @@ function initializeObjects() {
     });
 }
 
+function setBackground() {
+    const textureLoader = new THREE.TextureLoader();
+    const background_path = models_dir + "background.jpg"
+    textureLoader.load(background_path, texture => {
+        scene.background = texture;
+    })
+}
+
 let scene, camera, light, renderer, jet, missile, enemy, star;
 let missiles = [];
 let enemies = [];
@@ -68,8 +76,13 @@ const star_movement = 0.005;
 const enemy_interval = 1;
 const max_enemies = 2;
 const star_probability = 0.6;
-initialize(); // initialising scene and objects
-initializeObjects();
+let health = 100;
+let score = 0;
+const enemy_destroy_score = 1000;
+const star_collect_score = 500;
+initialize(); // initialising scene, camera and lighting
+initializeObjects(); // initializing game objects
+setBackground();
 const y_max = 1.75; // max y
 const x_max = camera.aspect * y_max; // max x
 
@@ -82,6 +95,7 @@ function animate() {
     handle_enemies();
     handle_stars();
     detect_collisions_missiles_enemies();
+    detect_collisions_player_star();
 }
 
 function destroy_enemy(i, j) {
@@ -107,9 +121,25 @@ function detect_collisions_missiles_enemies() {
             const dist = enemies[i].position.distanceTo(missiles[j].position);
             if (dist <= 0.4) {
                 destroy_enemy(i, j);
+                score += enemy_destroy_score;
                 i--; j--;
-                return;
             }
+        }
+    }
+}
+
+function collect_star(index) {
+    score += star_collect_score;
+    scene.remove(stars[index]);
+    stars.splice(index, 1);
+}
+
+function detect_collisions_player_star() {
+    for(let i=0; i<stars.length; i++) {
+        const dist = jet.position.distanceTo(stars[i].position);
+        if (dist <= 0.3) {
+            collect_star(i);
+            i--;
         }
     }
 }
@@ -159,7 +189,7 @@ function handle_enemies() {
     }
 }
 
-function onPress(event) {
+function onKeyPress(event) {
     let key = event.key;
     switch(key) {
         case 'W': case 'w':
