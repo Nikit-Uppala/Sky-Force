@@ -8,12 +8,12 @@ class FireBall {
     constructor(x1, y1, x2, y2) {
         this.object = enemy_fire.clone();
         this.object.position.set(x1, y1-0.03, 0);
-        this.velocity = new THREE.Vector3(x2-x1, y2-y1, 0);
-        this.velocity.normalize();
+        this.velocity = new THREE.Vector3(x2-x1, y2-y1, 0); // Getting direction of velocity vector
+        this.velocity.normalize(); // Converting it to unit vector
     }
     updatePosition() {
-        this.object.position.x += this.velocity.x * FireBall.speed;
-        this.object.position.y += this.velocity.y * FireBall.speed;
+        this.object.position.x += this.velocity.x * FireBall.speed; // update x position of fireball
+        this.object.position.y += this.velocity.y * FireBall.speed; // update y position of fireball
     }
 }
 class Enemy {
@@ -32,8 +32,8 @@ class Enemy {
         let new_fireball = new FireBall(
             this.object.position.x,
             this.object.position.y,
-            x, y);
-        this.prev_time = new Date();
+            x, y); // Create a new fireball 
+        this.prev_time = new Date(); // updating the prev_time of enemy shot
         return new_fireball;
     }
 }
@@ -47,25 +47,25 @@ function initialize()
     camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 100); // Using perspective camera
     const light_color = 0xffffff; // Light color is white
     const intensity = 1;
-    light = new THREE.DirectionalLight(light_color, intensity); // Chosen ambient lighting
+    light = new THREE.DirectionalLight(light_color, intensity); // Chosen directional lighting
     light.position.set(0, 0, 2);
     light.target.position.set(0, 0, 0)
-    scene.add(light);
+    scene.add(light); // adding light to our scene
     renderer = new THREE.WebGLRenderer({ antialias: true }); // Creating a webgl renderer
     renderer.setSize( width, height ); // Setting the size of screen
     document.body.appendChild( renderer.domElement );
     document.addEventListener("keydown", onKeyPress, false); // Adding event listener to detect key press for movement
-    document.addEventListener("mousedown", mousePress, false);
-    score_element = document.getElementById("score");
-    health_element = document.getElementById("health");
-    game_over_element = document.getElementById("game-over");
+    document.addEventListener("mousedown", mousePress, false); // Adding event listener to detect mouse click
+    score_element = document.getElementById("score"); // This element has score in HUD
+    health_element = document.getElementById("health"); // Element to display health of the player
+    game_over_element = document.getElementById("game-over"); // Used to display when game is over
     updateScore();
     updateHealth();
 }
 
 function initializeObjects() {
     const gltfLoader = new THREE.GLTFLoader(); // using gltfloader to import blender objects
-    const jet_path = models_dir + "plane.glb";
+    const jet_path = models_dir + "plane.glb"; // plane object
     gltfLoader.load(jet_path, gltf => {
         jet = gltf.scene;
         jet.rotation.x = 90;
@@ -75,7 +75,7 @@ function initializeObjects() {
         jet.position.set(0, -1, 0);
         scene.add(jet);
     });
-    const missile_path = models_dir + "missile.glb";
+    const missile_path = models_dir + "missile.glb"; // missile object which player shoots
     gltfLoader.load(missile_path, gltf => {
         missile = gltf.scene;
         let scale = 0.1;
@@ -84,19 +84,19 @@ function initializeObjects() {
         missile.rotation.y = Math.PI;
         missile.rotation.x = Math.PI/2;
     });
-    const fire_path = models_dir + "enemy_fire.glb";
+    const fire_path = models_dir + "enemy_fire.glb"; // fireball object
     gltfLoader.load(fire_path, gltf => {
         enemy_fire = gltf.scene;
         let scale = 0.06;
         enemy_fire.scale.set(scale, scale, scale);
     });
-    const enemy_path = models_dir + "ufo.glb";
+    const enemy_path = models_dir + "ufo.glb"; // enemy object
     gltfLoader.load(enemy_path, gltf => {
         enemy = gltf.scene;
         let scale = 0.1;
         enemy.scale.set(scale, scale, scale);
     });
-    const star_path = models_dir + "star.glb";
+    const star_path = models_dir + "star.glb"; // star object
     gltfLoader.load(star_path, gltf => {
         star = gltf.scene;
         let scale = 0.07;
@@ -106,10 +106,10 @@ function initializeObjects() {
 }
 
 function setBackground() {
-    const textureLoader = new THREE.TextureLoader();
+    const textureLoader = new THREE.TextureLoader(); // creating a texture loader
     const background_path = models_dir + "background.jpg"
     textureLoader.load(background_path, texture => {
-        scene.background = texture;
+        scene.background = texture; // setting background for the scene
     });
 }
 
@@ -134,8 +134,8 @@ initializeObjects(); // initializing game objects
 setBackground();
 const y_max = 1.75; // max y
 const x_max = camera.aspect * y_max; // max x
-const shoot_interval = 4.5;
-const damage = 20;
+const shoot_interval = 3; // time interval between 2 consecutive fireballs from an enemy
+const damage = 20; // damage done by the fireball by the UFO's fireball
 let game_over = false;
 
 camera.position.z = 5;
@@ -155,7 +155,7 @@ function animate() {
 }
 
 function destroy_enemy(i, j) {
-    let random_number = Math.random();
+    let random_number = Math.random(); // generating a number to decide whether a star comes or not
     if (random_number <= star_probability) {
         stars.push(star.clone());
         scene.add(stars[stars.length-1]);
@@ -163,12 +163,12 @@ function destroy_enemy(i, j) {
             enemies[i].object.position.x,
             enemies[i].object.position.y,
             enemies[i].object.position.z
-        );
+        ); // spawning stars at the location of the enemy
     }
     score += enemy_destroy_score;
     updateScore();
-    removeEnemy(i);
-    removeMissile(j);
+    removeEnemy(i); // removing enemy from the scene
+    removeMissile(j); // removing the missile from the scene
 }
 
 function updateScore() {
@@ -268,7 +268,7 @@ function handle_missiles() {
     for(let i=0; i<missiles.length; i++) {
         missiles[i].position.y += missile_movement;
         if(missiles[i].position.y >= y_max) {
-            removeMissile(i);
+            removeMissile(i); // if missile is not visible in the camera then remove
             i--;
         }
     }
@@ -284,7 +284,7 @@ function handle_stars() {
         stars[i].rotation.y += star_rotation;
         stars[i].position.y -= star_movement;
         if (stars[i].position.y <= -y_max) {
-            removeStar(i);
+            removeStar(i); // if star not visible in the camera then remove
             i--;
         }
     }
@@ -299,7 +299,7 @@ function handle_fireballs() {
     for (let i=0; i<fireballs.length; i++) {
         fireballs[i].updatePosition();
         if(Math.abs(fireballs[i].object.position.x) > x_max || Math.abs(fireballs[i].object.position.y) > y_max) {
-            removeFireBall(i);
+            removeFireBall(i); // if fireball not visible in the camera then remove
             i--;
         }
     }
@@ -315,14 +315,14 @@ function handle_enemies() {
     if (length < max_enemies) {
         if (enemy == undefined) return;
         let new_enemy = new Enemy();
-        enemies.push(new_enemy);
+        enemies.push(new_enemy); // adding enemies if number < 2
         scene.add(enemies[enemies.length-1].object);
     }
     const present = new Date();
     for(let i=0; i<enemies.length; i++) {
         enemies[i].updatePosition();
         if (enemies[i].object.position.y <= -y_max) {
-            removeEnemy(i);
+            removeEnemy(i); // if enemies not visible from the camera then remove
             i--;
         }
         else {
@@ -335,6 +335,8 @@ function handle_enemies() {
     }
 }
 
+
+// This function handles user input
 function onKeyPress(event) {
     let key = event.key;
     switch(key) {
@@ -357,6 +359,7 @@ function onKeyPress(event) {
     }
 }
 
+// this function handles mouse click
 function mousePress(event) {
     if (event.button == 0) {
         let new_missile = missile.clone();
