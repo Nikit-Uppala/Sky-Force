@@ -8,9 +8,32 @@
         body {
             margin: 0;
         }
+        .text {
+            font-size: 2rem;
+            color: #ffffff;
+            position: absolute;
+            top: 0.2vh;
+            user-select: none;
+        }
+        #score {
+            left: 0.2vw;
+        }
+        #health {
+            right: 0.2vw;
+        }
+        #game-over {
+            font-size: 5rem;
+            position: fixed;
+            color: white;
+            top: 20vh;
+            right: 30vw;
+        }
     </style>
 </head>
 <body>
+    <div class="text" id="score"></div>
+    <div class="text" id="health"></div>
+    <div id="game-over"></div>
     <script src="Three/three.js"></script>
     <script src="Three/GLTFLoader.js"></script>
     <!-- <script src="Three/OBJLoader.js"></script> -->

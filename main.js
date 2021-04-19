@@ -1,4 +1,8 @@
-const models_dir = "./models/";
+const models_dir = "./models/"; // models folder
+// Checking if high score field exists in the localstorage
+if (localStorage.getItem("HighScore") == undefined) {
+    localStorage.setItem("HighScore", 0);
+}
 class FireBall {
     static speed = 0.03;
     constructor(x1, y1, x2, y2) {
@@ -52,6 +56,11 @@ function initialize()
     document.body.appendChild( renderer.domElement );
     document.addEventListener("keydown", onKeyPress, false); // Adding event listener to detect key press for movement
     document.addEventListener("mousedown", mousePress, false);
+    score_element = document.getElementById("score");
+    health_element = document.getElementById("health");
+    game_over_element = document.getElementById("game-over");
+    updateScore();
+    updateHealth();
 }
 
 function initializeObjects() {
@@ -105,6 +114,7 @@ function setBackground() {
 }
 
 let scene, camera, light, renderer, jet, missile, enemy, star, enemy_fire;
+let score_element, health_element, game_over_element;
 let missiles = [];
 let enemies = [];
 let stars = [];
@@ -126,19 +136,22 @@ const y_max = 1.75; // max y
 const x_max = camera.aspect * y_max; // max x
 const shoot_interval = 4.5;
 const damage = 20;
+let game_over = false;
 
 camera.position.z = 5;
 
 function animate() {
     requestAnimationFrame( animate );
     renderer.render(scene, camera);
-    handle_missiles();
-    handle_enemies();
-    handle_stars();
-    detect_collisions_missiles_enemies();
-    detect_collisions_player_star();
-    detect_collisions_player_fireballs();
-    handle_fireballs();
+    if(!game_over) {
+        handle_missiles();
+        handle_enemies();
+        handle_stars();
+        detect_collisions_missiles_enemies();
+        detect_collisions_player_star();
+        detect_collisions_player_fireballs();
+        handle_fireballs();
+    }
 }
 
 function destroy_enemy(i, j) {
@@ -153,8 +166,17 @@ function destroy_enemy(i, j) {
         );
     }
     score += enemy_destroy_score;
+    updateScore();
     removeEnemy(i);
     removeMissile(j);
+}
+
+function updateScore() {
+    score_element.innerHTML = "Score: " + score;
+}
+
+function updateHealth() {
+    health_element.innerHTML = "Health: " + health;
 }
 
 function detect_collisions_missiles_enemies() {
@@ -163,15 +185,50 @@ function detect_collisions_missiles_enemies() {
             const dist = enemies[i].object.position.distanceTo(missiles[j].position);
             if (dist <= 0.2) {
                 destroy_enemy(i, j);
-                score += enemy_destroy_score;
                 i--; j--;
             }
         }
     }
 }
 
+function updateHighScore() {
+    let high_score = localStorage.getItem("HighScore");
+    if(score > high_score) {
+        high_score = score;
+        localStorage.setItem("HighScore", score);
+    }
+    game_over_element.innerHTML = "<p>Game Over</p><p>High Score: " + high_score + "</p>";
+}
+
+function gameOver() {
+    scene.remove(jet);
+    while(enemies.length != 0) {
+        scene.remove(enemies[enemies.length-1].object);
+        enemies.pop();
+    }
+    while(missiles.length != 0) {
+        scene.remove(missiles[missiles.length-1]);
+        missiles.pop();
+    }
+    while(fireballs.length != 0) {
+        scene.remove(fireballs[fireballs.length-1].object);
+        fireballs.pop();
+    }
+    while(stars.length != 0) {
+        scene.remove(stars[stars.length-1]);
+        stars.pop();
+    }
+    updateHighScore();
+}
+
 function reduce_health(index) {
     health -= damage;
+    console.log(health);
+    updateHealth();
+    if (health <= 0) {
+        game_over = true;
+        gameOver();
+    }
     scene.remove(fireballs[index].object);
     fireballs.splice(index, 1);
 }
@@ -188,6 +245,7 @@ function detect_collisions_player_fireballs() {
 
 function collect_star(index) {
     score += star_collect_score;
+    updateScore();
     removeStar(index);
 }
 
