@@ -37,6 +37,11 @@ class Enemy {
             this.oscillate_speed *= -1;
     }
     shootFireBall(x, y) {
+        if(enemy_shoot != undefined) {
+            if(enemy_shoot.isPlaying)
+                enemy_shoot.stop();
+            enemy_shoot.play();
+        }
         let new_fireball = new FireBall(
             this.object.position.x,
             this.object.position.y,
@@ -54,6 +59,15 @@ function initialize()
     // Creating scene, camera, light in the scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 100); // Using perspective camera
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
+    enemy_shoot = new THREE.Audio(listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load("./sounds/enemy_shoot.mp3", buffer => {
+        enemy_shoot.setBuffer(buffer);
+        enemy_shoot.setLoop(false);
+        enemy_shoot.setVolume(0.6);
+    });
     const light_color = 0xffffff; // Light color is white
     const intensity = 1;
     light = new THREE.DirectionalLight(light_color, intensity); // Chosen directional lighting
@@ -130,6 +144,7 @@ function setBackground() {
 }
 
 let scene, camera, light, renderer, jet, missile, enemy, star, enemy_fire;
+let enemy_shoot;
 let score_element, health_element, game_over_element;
 let missiles = [];
 let enemies = [];
