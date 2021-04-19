@@ -18,15 +18,23 @@ class FireBall {
 }
 class Enemy {
     static speed = 0.003;
-    constructor() {
-        let x = -x_max + 2*x_max * Math.random();
+    static oscillate_length = 0.3;
+    constructor(component) {
+        this.component = component;
+        this.x = (component_borders[component]+Enemy.oscillate_length) + 
+            (component_width-2*Enemy.oscillate_length) * Math.random();
         let offset = -0.5 + Math.random();
+        this.y = y_max + offset;
+        this.oscillate_speed = 0.006;
         this.prev_time = new Date();
         this.object = enemy.clone();
-        this.object.position.set(x, (y_max-0.4) + offset);
+        this.object.position.set(this.x, this.y);
     }
     updatePosition() {
         this.object.position.y -= Enemy.speed;
+        this.object.position.x += this.oscillate_speed;
+        if(Math.abs(this.x-this.object.position.x) > Enemy.oscillate_length)
+            this.oscillate_speed *= -1;
     }
     shootFireBall(x, y) {
         let new_fireball = new FireBall(
@@ -42,6 +50,7 @@ function initialize()
     // Setting screen dimensions
     const width = window.innerWidth;
     const height = window.innerHeight;
+    console.log(width, height);
     // Creating scene, camera, light in the scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 100); // Using perspective camera
@@ -105,6 +114,13 @@ function initializeObjects() {
     });
 }
 
+function initComponents() {
+    for (let i=0; i<max_enemies; i++) {
+        component_borders.push(component_borders[component_borders.length-1] + component_width);
+        enemy_in_component.push(0);
+    }
+}
+
 function setBackground() {
     const textureLoader = new THREE.TextureLoader(); // creating a texture loader
     const background_path = models_dir + "background.jpg"
@@ -123,7 +139,7 @@ const movement = 0.06; // speed of fighter jet
 const missile_movement = 0.05; // speed of missile upward
 const star_rotation = 0.05; // speed of rotation of stars
 const star_movement = 0.005; // speed of starts downards
-const max_enemies = 2; // max number of enemies at a time
+const max_enemies = 3; // max number of enemies at a time
 const star_probability = 0.6;
 let health = 100;
 let score = 0;
@@ -132,10 +148,16 @@ const star_collect_score = 500;
 initialize(); // initialising scene, camera and lighting
 initializeObjects(); // initializing game objects
 setBackground();
+const shoot_interval = 5; // time interval between 2 consecutive fireballs from an enemy
+const damage = 20; // damage done by the fireball by the UFO's fireball
 const y_max = 1.75; // max y
 const x_max = camera.aspect * y_max; // max x
-const shoot_interval = 3; // time interval between 2 consecutive fireballs from an enemy
-const damage = 20; // damage done by the fireball by the UFO's fireball
+const component_width = 2 * x_max/max_enemies;
+// breaking screen into 3 components
+let component_borders = [-x_max];
+// Storing which components has enemies
+let enemy_in_component = [];
+initComponents();
 let game_over = false;
 
 camera.position.z = 5;
@@ -223,7 +245,6 @@ function gameOver() {
 
 function reduce_health(index) {
     health -= damage;
-    console.log(health);
     updateHealth();
     if (health <= 0) {
         game_over = true;
@@ -307,16 +328,18 @@ function handle_fireballs() {
 
 function removeEnemy(index) {
     scene.remove(enemies[index].object);
+    enemy_in_component[enemies[index].component] = 0;
     enemies.splice(index, 1);
 }
 
 function handle_enemies() {
-    let length = enemies.length;
-    if (length < max_enemies) {
-        if (enemy == undefined) return;
-        let new_enemy = new Enemy();
-        enemies.push(new_enemy); // adding enemies if number < 2
-        scene.add(enemies[enemies.length-1].object);
+    for(let i=0; i<max_enemies; i++) {
+        if(enemy == undefined) return;
+        if(!enemy_in_component[i]) {
+            enemy_in_component[i] = 1;
+            enemies.push(new Enemy(i));
+            scene.add(enemies[enemies.length-1].object);
+        }
     }
     const present = new Date();
     for(let i=0; i<enemies.length; i++) {
