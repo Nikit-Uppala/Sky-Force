@@ -37,11 +37,7 @@ class Enemy {
             this.oscillate_speed *= -1;
     }
     shootFireBall(x, y) {
-        if(enemy_shoot != undefined) {
-            if(enemy_shoot.isPlaying)
-                enemy_shoot.stop();
-            enemy_shoot.play();
-        }
+        playAudio(enemy_shoot_sound);
         let new_fireball = new FireBall(
             this.object.position.x,
             this.object.position.y,
@@ -59,15 +55,6 @@ function initialize()
     // Creating scene, camera, light in the scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 100); // Using perspective camera
-    const listener = new THREE.AudioListener();
-    camera.add( listener );
-    enemy_shoot = new THREE.Audio(listener);
-    const audioLoader = new THREE.AudioLoader();
-    audioLoader.load("./sounds/enemy_shoot.mp3", buffer => {
-        enemy_shoot.setBuffer(buffer);
-        enemy_shoot.setLoop(false);
-        enemy_shoot.setVolume(0.6);
-    });
     const light_color = 0xffffff; // Light color is white
     const intensity = 1;
     light = new THREE.DirectionalLight(light_color, intensity); // Chosen directional lighting
@@ -84,6 +71,43 @@ function initialize()
     game_over_element = document.getElementById("game-over"); // Used to display when game is over
     updateScore();
     updateHealth();
+}
+
+// initializes sounds in game
+function initSounds() {
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
+    enemy_shoot_sound = new THREE.Audio(listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load("./sounds/enemy_shoot.mp3", buffer => {
+        enemy_shoot_sound.setBuffer(buffer);
+        enemy_shoot_sound.setLoop(false);
+        enemy_shoot_sound.setVolume(0.6);
+    });
+    enemy_destroy_sound = new THREE.Audio(listener);
+    audioLoader.load("./sounds/enemy_destroy.mp3", buffer => {
+        enemy_destroy_sound.setBuffer(buffer);
+        enemy_destroy_sound.setLoop(false);
+        enemy_destroy_sound.setVolume(0.6);
+    });
+    player_hit_sound = new THREE.Audio(listener);
+    audioLoader.load("./sounds/user_hit.mp3", buffer => {
+        player_hit_sound.setBuffer(buffer);
+        player_hit_sound.setLoop(false);
+        player_hit_sound.setVolume(0.6);
+    });
+    player_shoot_sound = new THREE.Audio(listener);
+    audioLoader.load("./sounds/user_shoot.mp3", buffer => {
+        player_shoot_sound.setBuffer(buffer);
+        player_shoot_sound.setLoop(false);
+        player_shoot_sound.setVolume(0.6);
+    });
+    star_collect_sound = new THREE.Audio(listener);
+    audioLoader.load("./sounds/star_collect.mp3", buffer => {
+        star_collect_sound.setBuffer(buffer);
+        star_collect_sound.setLoop(false);
+        star_collect_sound.setVolume(0.6);
+    });
 }
 
 function initializeObjects() {
@@ -144,7 +168,9 @@ function setBackground() {
 }
 
 let scene, camera, light, renderer, jet, missile, enemy, star, enemy_fire;
-let enemy_shoot;
+let enemy_shoot_sound, enemy_destroy_sound;
+let player_shoot_sound, player_hit_sound;
+let star_collect_sound;
 let score_element, health_element, game_over_element;
 let missiles = [];
 let enemies = [];
@@ -163,8 +189,9 @@ const star_collect_score = 500;
 initialize(); // initialising scene, camera and lighting
 initializeObjects(); // initializing game objects
 setBackground();
+initSounds();
 const shoot_interval = 5; // time interval between 2 consecutive fireballs from an enemy
-const damage = 20; // damage done by the fireball by the UFO's fireball
+const damage = 10; // damage done by the fireball by the UFO's fireball
 const y_max = 1.75; // max y
 const x_max = camera.aspect * y_max; // max x
 const component_width = 2 * x_max/max_enemies;
@@ -191,6 +218,14 @@ function animate() {
     }
 }
 
+function playAudio(audio) {
+    if(audio != undefined) {
+        if(audio.isPlaying)
+            audio.stop();
+        audio.play();
+    }
+}
+
 function destroy_enemy(i, j) {
     let random_number = Math.random(); // generating a number to decide whether a star comes or not
     if (random_number <= star_probability) {
@@ -203,6 +238,7 @@ function destroy_enemy(i, j) {
         ); // spawning stars at the location of the enemy
     }
     score += enemy_destroy_score;
+    playAudio(enemy_destroy_sound);
     updateScore();
     removeEnemy(i); // removing enemy from the scene
     removeMissile(j); // removing the missile from the scene
@@ -260,6 +296,7 @@ function gameOver() {
 
 function reduce_health(index) {
     health -= damage;
+    playAudio(player_hit_sound);
     updateHealth();
     if (health <= 0) {
         game_over = true;
@@ -281,6 +318,7 @@ function detect_collisions_player_fireballs() {
 
 function collect_star(index) {
     score += star_collect_score;
+    playAudio(star_collect_sound);
     updateScore();
     removeStar(index);
 }
@@ -376,6 +414,7 @@ function handle_enemies() {
 
 // This function handles user input
 function onKeyPress(event) {
+    if (game_over) return;
     let key = event.key;
     switch(key) {
         case 'W': case 'w':
@@ -399,7 +438,9 @@ function onKeyPress(event) {
 
 // this function handles mouse click
 function mousePress(event) {
+    if(game_over) return;
     if (event.button == 0) {
+        playAudio(player_shoot_sound);
         let new_missile = missile.clone();
         new_missile.position.set(
             jet.position.x, jet.position.y+0.3, jet.position.z
