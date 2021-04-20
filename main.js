@@ -25,7 +25,7 @@ class Enemy {
             (component_width-2*Enemy.oscillate_length) * Math.random();
         let offset = -0.5 + Math.random();
         this.y = y_max + offset;
-        this.oscillate_speed = 0.006;
+        this.oscillate_speed = 0.004;
         this.prev_time = new Date();
         this.object = enemy.clone();
         this.object.position.set(this.x, this.y);
